@@ -1,0 +1,278 @@
+---
+title: "Homework 7.315"
+author: "Jordan Atkins"
+date: "2025-04-07"
+output: 
+ html_document: 
+  toc: true
+  toc_depth: 2
+  toc_float: true
+---
+
+# [Github](https://github.com/Jordan-Atkins/Homework-7-315.git)
+
+# Problem 1
+
+## Part A & B
+
+```{r echo= FALSE}
+library(mosaic)
+library(ggplot2)
+arm <- read.csv('armfold.csv')
+
+table(arm$Sex)
+
+male_left <- mean(arm$LonR_fold[arm$Sex == "Male"]==0)
+
+female_left <- mean(arm$LonR_fold[arm$Sex == "Female"]==0)
+
+
+left_diff <- male_left - female_left
+```
+
+## Part C
+
+```{r echo=FALSE}
+p1 <- 0.5283  # males
+n1 <- 106
+p2 <- 0.5766  # females
+n2 <- 111
+
+# Standard error formula
+SE <- sqrt((p1 * (1 - p1)) / n1 + (p2 * (1 - p2)) / n2)
+
+# Z* value for 95% confidence
+z_star <- 1.96
+
+# Confidence interval
+diff <- p1 - p2
+lower <- diff - z_star * SE
+upper <- diff + z_star * SE
+
+cat("95% CI for difference in proportions (manual): [", round(lower, 4), ",", round(upper, 4), "]\n")
+
+# Using built-in function (prop.test)
+x <- c(round(p1 * n1), round(p2 * n2))  # successes
+n <- c(n1, n2)                          # sample sizes
+prop.test(x, n, correct = FALSE)
+
+```
+
+## Parts D - I
+
+The fill the blank: If we took random samples of males and females in this population the then we would expect that about 95% of those confidence intervals would contain the true difference in population proportions
+
+The Standard Error tells us that. in other random samples of students, the proportions would differ by +/- 0.067
+
+The sampling distribution refers to the distribution of possible values of the difference in sample proportions (male minus female) you would get if you repeated the sampling process many times. The difference in proportions would change but the population of each sex folding their arms would stay the same
+
+The central limit theorem justifies a normal distribution because our sample sizes are large enough. This is also why we used a z-score of 1.96
+
+If the Confidence interval for proportions was [-0.01, 0.30] The claim that there is no sex difference cannot in arm folding cannot be disputed as this confidence interval contains 0.
+
+If this experiment was repeated many times with a 95% confidence interval, the sample proportions will vary and the confidence interval bounds will shift, but the 95% chance that the true proportion falls between those bounds will stay the same
+
+# Problem 2
+
+## Part A
+
+```{r echo = FALSE }
+
+vote <- read.csv('turnout.csv')
+
+table(vote$GOTV_call, vote$voted1998)
+
+# Extract counts for the test
+# GOTV_call == 1
+gotv_votes <- sum(vote$GOTV_call == 1 & vote$voted1998 == 1)
+gotv_total <- sum(vote$GOTV_call == 1)
+
+# GOTV_call == 0
+nogotv_votes <- sum(vote$GOTV_call == 0 & vote$voted1998 == 1)
+nogotv_total <- sum(vote$GOTV_call == 0)
+
+# Run 2-sample proportion test (without continuity correction)
+prop.test(x = c(gotv_votes, nogotv_votes),
+          n = c(gotv_total, nogotv_total),
+          correct = FALSE)
+```
+
+## Part B
+
+GOTV_Call vs Voted1996
+
+```{r echo = FALSE }
+# Proportion who got a GOTV call by voted1996
+tapply(vote$GOTV_call, vote$voted1996, mean)
+
+# CI: Is the difference significant?
+tab_v1996 <- table(vote$voted1996, vote$GOTV_call)
+prop.test(x = tab_v1996[, "1"], n = rowSums(tab_v1996), correct = FALSE)
+
+# Plot
+library(ggplot2)
+ggplot(vote, aes(factor(voted1996), GOTV_call)) +
+  stat_summary(fun = mean, geom = "bar") +
+  labs(title = "GOTV Call Rate by 1996 Voting", x = "Voted in 1996", y = "Proportion Receiving GOTV Call")
+ 
+
+
+
+
+```
+
+As seen here if the person voted in 1996 they were more likely to get a call.
+
+GOTV Calls Vs Age
+
+```{r echo = FALSE}
+# Compare mean age by GOTV_call status
+tapply(vote$AGE, vote$GOTV_call, mean)
+
+# CI: Test age difference
+t.test(AGE ~ GOTV_call, data = vote)
+
+# Plot
+ggplot(vote, aes(x = factor(GOTV_call), y = AGE)) +
+  geom_boxplot() +
+  labs(title = "Age by GOTV Call Status", x = "Received GOTV Call", y = "Age")
+
+
+```
+
+On average, people who got a GOTV call were older than those who did not
+
+GOT V calls Vs Party Affilliation
+
+```{r echo = FALSE}
+tapply(vote$GOTV_call, vote$MAJORPTY, mean)
+
+# CI: Is party affiliation related to GOTV_call?
+tab_party <- table(vote$MAJORPTY, vote$GOTV_call)
+prop.test(x = tab_party[, "1"], n = rowSums(tab_party), correct = FALSE)
+
+# Plot
+ggplot(vote, aes(factor(MAJORPTY), GOTV_call)) +
+  stat_summary(fun = mean, geom = "bar") +
+  labs(title = "GOTV Call Rate by Party Affiliation", x = "Major Party", y = "Proportion Receiving GOTV Call")
+
+```
+
+If a citizen was part of a major party they were more likely to get a call.
+
+Voted in 1998 vs voted in 1996
+
+```{r echo = FALSE}
+tapply(vote$voted1998, vote$voted1996, mean)
+
+# Confidence interval for voted1996 effect on 1998 voting
+tab1 <- table(vote$voted1996, vote$voted1998)
+prop.test(x = tab1[, "1"], n = rowSums(tab1), correct = FALSE)
+
+# Visualization
+library(ggplot2)
+ggplot(vote, aes(factor(voted1996), voted1998)) +
+  stat_summary(fun = mean, geom = "bar") +
+  labs(title = "1998 Voting by 1996 Voting History", x = "Voted in 1996", y = "Proportion Voted in 1998")
+
+```
+
+If the citizen voted in 1996 they were more likely to vote in 1998
+
+Voted in 1998 vs Age
+
+```{r echo = FALSE}
+tapply(vote$AGE, vote$voted1998, mean)
+
+# Confidence interval for AGE difference
+t.test(AGE ~ voted1998, data = vote)
+
+# Visualization
+ggplot(vote, aes(x = factor(voted1998), y = AGE)) +
+  geom_boxplot() +
+  labs(title = "AGE by 1998 Voting Status", x = "Voted in 1998", y = "Age")
+
+```
+
+People who voted in 1998 were older than those who did not
+
+Voted in 1996 vs Party Affiliation
+
+```{r echo=FALSE}
+tapply(vote$voted1998, vote$MAJORPTY, mean)
+
+# Confidence interval for voting difference by party
+tab3 <- table(vote$MAJORPTY, vote$voted1998)
+prop.test(x = tab3[, "1"], n = rowSums(tab3), correct = FALSE)
+
+# Visualization
+ggplot(vote, aes(factor(MAJORPTY), voted1998)) +
+  stat_summary(fun = mean, geom = "bar") +
+  labs(title = "Voting in 1998 by Party Affiliation", x = "Major Party Member", y = "Proportion Voted")
+
+```
+
+Major party members were more likely to vote in 1998
+
+## Part C
+
+Match and Test for balance
+
+```{r echo = FALSE}
+library(MatchIt)
+
+m.out <- matchit(GOTV_call ~ voted1996 + AGE + MAJORPTY,
+                 data = vote,
+                 method = "nearest",
+                 ratio = 5)
+matched_data <- match.data(m.out) 
+
+# Mean voted1996 by GOTV_call group
+tapply(matched_data$voted1996, matched_data$GOTV_call, mean)
+
+# 95% CI test for proportion difference
+tab_v1996 <- table(matched_data$voted1996, matched_data$GOTV_call)
+prop.test(x = tab_v1996[, "1"], n = rowSums(tab_v1996), correct = FALSE)
+
+# Mean age by treatment group
+tapply(matched_data$AGE, matched_data$GOTV_call, mean)
+
+# 95% CI for age difference
+t.test(AGE ~ GOTV_call, data = matched_data)
+
+tapply(matched_data$MAJORPTY, matched_data$GOTV_call, mean)
+
+# 95% CI test for difference in major party membership
+tab_party <- table(matched_data$MAJORPTY, matched_data$GOTV_call)
+prop.test(x = tab_party[, "1"], n = rowSums(tab_party), correct = FALSE)
+```
+
+This is evidence that the matched data is mostly balanced
+
+```{r echo = FALSE }
+# Voting rates in 1998 by treatment
+tapply(matched_data$voted1998, matched_data$GOTV_call, mean)
+
+# Create 2x2 table of votes by treatment group
+tab_matched <- table(matched_data$GOTV_call, matched_data$voted1998)
+
+# Run prop test (difference in proportions)
+prop.test(x = tab_matched[, "1"], n = rowSums(tab_matched), correct = FALSE)
+
+```
+
+After matching on prior voting history, age, and party affiliation (5 controls per treated unit), the estimated effect of receiving a GOTV call on 1998 voting increased to 7.9 percentage points, with a 95% confidence interval of [-14.4%, -1.3%]. This difference is statistically significant (p = 0.022), suggesting that the GOTV call had a positive causal impact on voter turnout.
+
+# Conclusion
+
+The GOTV call had a statistically significant positive effect on the likelihood that a person voted in the 1998 election. In the raw data, those who received a GOTV call were about 20 percentage points more likely to vote.But this estimate was likely confounded by differences in prior voting behavior, age, and party affiliation.
+
+After using matching to control for those confounders (voted1996, AGE, MAJORPTY), the estimated effect decreased to about 8 percentage points, but remained statistically significant:
+
+95% Confidence Interval: \~[-14.4%, -1.3%]
+
+p-value = 0.022
+
+This suggests that even after adjusting for background differences, receiving a GOTV call caused an increase in voter turnout in 1998 — though the true effect is smaller than the raw difference.
+
+The GOTV intervention was effective: individuals who received the call were significantly more likely to vote in 1998, even after accounting for differences in demographics and political background. The causal effect appears to be approximately 8 percentage points.
